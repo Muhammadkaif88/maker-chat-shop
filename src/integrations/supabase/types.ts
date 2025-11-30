@@ -44,6 +44,57 @@ export type Database = {
         }
         Relationships: []
       }
+      courses: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          duration: string
+          id: string
+          image_url: string | null
+          is_featured: boolean | null
+          mrp: number | null
+          name: string
+          order_index: number | null
+          price: number
+          slug: string
+          syllabus: Json | null
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description?: string | null
+          duration: string
+          id?: string
+          image_url?: string | null
+          is_featured?: boolean | null
+          mrp?: number | null
+          name: string
+          order_index?: number | null
+          price: number
+          slug: string
+          syllabus?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          duration?: string
+          id?: string
+          image_url?: string | null
+          is_featured?: boolean | null
+          mrp?: number | null
+          name?: string
+          order_index?: number | null
+          price?: number
+          slug?: string
+          syllabus?: Json | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           admin_notes: string | null
