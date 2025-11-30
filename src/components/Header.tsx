@@ -7,6 +7,7 @@ import { CartSheet } from "@/components/CartSheet";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useQuery } from "@tanstack/react-query";
 
 export const Header = () => {
   const navigate = useNavigate();
@@ -14,6 +15,15 @@ export const Header = () => {
   const [cartOpen, setCartOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const { isAdmin } = useUserRole();
+
+  const { data: settings } = useQuery({
+    queryKey: ["header-settings"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("settings").select("*");
+      if (error) throw error;
+      return data.reduce((acc, s) => ({ ...acc, [s.key]: s.value }), {} as Record<string, string>);
+    },
+  });
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -41,7 +51,7 @@ export const Header = () => {
               <span className="text-xl font-bold text-white">⚡</span>
             </div>
             <span className="hidden text-xl font-bold text-foreground sm:block">
-              TechMakers
+              {settings?.store_name || "Edukkit"}
             </span>
           </Link>
 
