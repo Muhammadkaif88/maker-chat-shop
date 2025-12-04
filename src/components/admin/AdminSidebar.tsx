@@ -1,4 +1,4 @@
-import { Package, ShoppingCart, Settings, LayoutDashboard } from "lucide-react";
+import { Package, ShoppingCart, Settings, LayoutDashboard, FolderOpen, GraduationCap } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -15,6 +15,8 @@ import {
 const items = [
   { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
   { title: "Products", url: "/admin/products", icon: Package },
+  { title: "Categories", url: "/admin/categories", icon: FolderOpen },
+  { title: "Courses", url: "/admin/courses", icon: GraduationCap },
   { title: "Orders", url: "/admin/orders", icon: ShoppingCart },
   { title: "Settings", url: "/admin/settings", icon: Settings },
 ];
