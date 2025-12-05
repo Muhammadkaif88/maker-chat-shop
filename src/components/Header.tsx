@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useCart } from "@/contexts/CartContext";
 import { CartSheet } from "@/components/CartSheet";
+import { SearchCommand } from "@/components/SearchCommand";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -13,6 +14,7 @@ export const Header = () => {
   const navigate = useNavigate();
   const { itemCount } = useCart();
   const [cartOpen, setCartOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const { isAdmin } = useUserRole();
 
@@ -83,7 +85,12 @@ export const Header = () => {
           </nav>
 
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="hidden sm:flex">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="hidden sm:flex"
+              onClick={() => setSearchOpen(true)}
+            >
               <Search className="h-5 w-5" />
             </Button>
             
@@ -137,6 +144,7 @@ export const Header = () => {
         </div>
       </div>
       <CartSheet open={cartOpen} onOpenChange={setCartOpen} />
+      <SearchCommand open={searchOpen} onOpenChange={setSearchOpen} />
     </header>
   );
 };
