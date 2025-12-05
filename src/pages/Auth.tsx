@@ -61,10 +61,10 @@ const Auth = () => {
       <Card className="w-full max-w-md shadow-hover">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-primary shadow-glow">
-            <span className="text-3xl">⚡</span>
+            <span className="text-3xl">🔧</span>
           </div>
-          <CardTitle className="text-2xl">Welcome to TechMakers</CardTitle>
-          <CardDescription>Sign in to access your account and track orders</CardDescription>
+          <CardTitle className="text-2xl">Welcome to Edukkit</CardTitle>
+          <CardDescription>Sign in to access your account, track orders & explore electronics</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="signin" className="w-full">
