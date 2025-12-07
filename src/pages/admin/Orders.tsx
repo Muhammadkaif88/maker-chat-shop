@@ -19,8 +19,29 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { Eye } from "lucide-react";
+import { OrderInvoiceModal } from "@/components/admin/OrderInvoiceModal";
 
 type OrderStatus = "pending" | "confirmed" | "dispatched" | "delivered" | "cancelled";
+
+interface OrderItem {
+  name: string;
+  price: number;
+  quantity: number;
+}
+
+interface Order {
+  id: string;
+  order_number: string;
+  customer_name: string;
+  customer_email: string | null;
+  customer_phone: string;
+  shipping_address: string;
+  items: OrderItem[];
+  total: number;
+  status: string | null;
+  created_at: string | null;
+}
 
 const statusColors: Record<OrderStatus, string> = {
   pending: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
@@ -31,6 +52,9 @@ const statusColors: Record<OrderStatus, string> = {
 };
 
 export default function AdminOrders() {
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [invoiceOpen, setInvoiceOpen] = useState(false);
+
   const { data: orders, isLoading, refetch } = useQuery({
     queryKey: ["admin-orders"],
     queryFn: async () => {
@@ -42,6 +66,11 @@ export default function AdminOrders() {
       return data;
     },
   });
+
+  const handleViewOrder = (order: typeof orders extends (infer T)[] | null | undefined ? T : never) => {
+    setSelectedOrder(order as unknown as Order);
+    setInvoiceOpen(true);
+  };
 
   const handleStatusChange = async (orderId: string, newStatus: string) => {
     try {
@@ -112,27 +141,43 @@ export default function AdminOrders() {
                   {new Date(order.created_at!).toLocaleDateString()}
                 </TableCell>
                 <TableCell>
-                  <Select
-                    value={order.status || "pending"}
-                    onValueChange={(value) => handleStatusChange(order.id, value)}
-                  >
-                    <SelectTrigger className="w-32">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="confirmed">Confirmed</SelectItem>
-                      <SelectItem value="dispatched">Dispatched</SelectItem>
-                      <SelectItem value="delivered">Delivered</SelectItem>
-                      <SelectItem value="cancelled">Cancelled</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handleViewOrder(order)}
+                      title="View Invoice"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Select
+                      value={order.status || "pending"}
+                      onValueChange={(value) => handleStatusChange(order.id, value)}
+                    >
+                      <SelectTrigger className="w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="confirmed">Confirmed</SelectItem>
+                        <SelectItem value="dispatched">Dispatched</SelectItem>
+                        <SelectItem value="delivered">Delivered</SelectItem>
+                        <SelectItem value="cancelled">Cancelled</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </div>
+
+      <OrderInvoiceModal
+        order={selectedOrder}
+        open={invoiceOpen}
+        onClose={() => setInvoiceOpen(false)}
+      />
     </div>
   );
 }
