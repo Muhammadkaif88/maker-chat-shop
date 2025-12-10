@@ -373,8 +373,8 @@ const AdminCourses = () => {
         </Dialog>
       </div>
 
-      <Card>
-        <Table>
+      <Card className="overflow-x-auto">
+        <Table className="min-w-[700px]">
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>

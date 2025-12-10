@@ -103,8 +103,8 @@ export default function AdminOrders() {
         <p className="text-muted-foreground">Manage customer orders</p>
       </div>
 
-      <div className="border border-border rounded-lg overflow-hidden bg-card">
-        <Table>
+      <div className="border border-border rounded-lg overflow-hidden bg-card overflow-x-auto">
+        <Table className="min-w-[800px]">
           <TableHeader>
             <TableRow>
               <TableHead>Order #</TableHead>

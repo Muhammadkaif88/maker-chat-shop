@@ -226,8 +226,8 @@ const AdminCategories = () => {
         </Dialog>
       </div>
 
-      <Card>
-        <Table>
+      <Card className="overflow-x-auto">
+        <Table className="min-w-[600px]">
           <TableHeader>
             <TableRow>
               <TableHead>Order</TableHead>
