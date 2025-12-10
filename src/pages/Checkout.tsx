@@ -6,7 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Loader2, MessageCircle, Truck } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,21 +20,50 @@ import { supabase } from "@/integrations/supabase/client";
 const KERALA_SHIPPING = 70;
 const OTHER_STATE_SHIPPING = 100;
 
+const COUNTRIES = [
+  "India", "United States", "United Kingdom", "Canada", "Australia", "Germany",
+  "France", "Japan", "China", "Brazil", "Russia", "South Africa", "United Arab Emirates",
+  "Singapore", "Malaysia", "Nepal", "Bangladesh", "Sri Lanka", "Pakistan", "Afghanistan",
+  "Argentina", "Austria", "Belgium", "Chile", "Colombia", "Denmark", "Egypt", "Finland",
+  "Greece", "Hong Kong", "Indonesia", "Ireland", "Israel", "Italy", "Kenya", "Kuwait",
+  "Mexico", "Netherlands", "New Zealand", "Nigeria", "Norway", "Oman", "Philippines",
+  "Poland", "Portugal", "Qatar", "Saudi Arabia", "South Korea", "Spain", "Sweden",
+  "Switzerland", "Taiwan", "Thailand", "Turkey", "Vietnam"
+].sort();
+
+const INDIAN_STATES = [
+  "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa",
+  "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala",
+  "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland",
+  "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura",
+  "Uttar Pradesh", "Uttarakhand", "West Bengal", "Andaman and Nicobar Islands",
+  "Chandigarh", "Dadra and Nagar Haveli and Daman and Diu", "Delhi", "Jammu and Kashmir",
+  "Ladakh", "Lakshadweep", "Puducherry"
+].sort();
+
 const Checkout = () => {
   const navigate = useNavigate();
   const { items, total, clearCart } = useCart();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
+    country: "India",
     name: "",
+    address: "",
+    apartment: "",
+    city: "",
+    state: "",
+    pincode: "",
     phone: "",
     email: "",
-    address: "",
-    pincode: "",
-    state: "kerala", // "kerala" or "other"
     notes: "",
   });
 
-  const shippingCharge = formData.state === "kerala" ? KERALA_SHIPPING : OTHER_STATE_SHIPPING;
+  // Auto-calculate shipping based on state
+  const shippingCharge = useMemo(() => {
+    if (formData.country !== "India") return OTHER_STATE_SHIPPING;
+    return formData.state === "Kerala" ? KERALA_SHIPPING : OTHER_STATE_SHIPPING;
+  }, [formData.country, formData.state]);
+
   const grandTotal = useMemo(() => total + shippingCharge, [total, shippingCharge]);
 
   if (items.length === 0) {
@@ -46,12 +81,24 @@ const Checkout = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!formData.state) {
+      toast.error("Please select a state");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      // Create order in database
       const orderNumber = `ORD${Date.now()}`;
-      const stateLabel = formData.state === "kerala" ? "Kerala" : "Outside Kerala";
+      const fullAddress = [
+        formData.address,
+        formData.apartment,
+        formData.city,
+        formData.state,
+        formData.pincode,
+        formData.country
+      ].filter(Boolean).join(", ");
       
       const { data: order, error } = await supabase
         .from("orders")
@@ -60,7 +107,7 @@ const Checkout = () => {
           customer_name: formData.name,
           customer_phone: formData.phone,
           customer_email: formData.email,
-          shipping_address: `${formData.address}, ${formData.pincode} (${stateLabel})`,
+          shipping_address: fullAddress,
           items: items.map((item) => ({
             productId: item.id,
             name: item.name,
@@ -75,10 +122,11 @@ const Checkout = () => {
 
       if (error) throw error;
 
-      // Generate WhatsApp message
       const itemsList = items
         .map((item) => `${item.name} x${item.quantity} - ₹${(item.price * item.quantity).toFixed(2)}`)
         .join("\n");
+
+      const shippingLabel = formData.state === "Kerala" ? "Kerala" : "Outside Kerala";
 
       const message = `🛒 *New Order*
 Order ID: #${orderNumber}
@@ -87,24 +135,23 @@ Order ID: #${orderNumber}
 ${itemsList}
 
 *Subtotal:* ₹${total.toFixed(2)}
-*Shipping (${stateLabel}):* ₹${shippingCharge}
+*Shipping (${shippingLabel}):* ₹${shippingCharge}
 *Total:* ₹${grandTotal.toFixed(2)}
 
 *Customer Details:*
 Name: ${formData.name}
 Phone: ${formData.phone}
-Email: ${formData.email}
+Email: ${formData.email || "Not provided"}
 
 *Delivery Address:*
 ${formData.address}
-${formData.pincode}
-State: ${stateLabel}
+${formData.apartment ? formData.apartment + "\n" : ""}${formData.city}, ${formData.state} ${formData.pincode}
+${formData.country}
 
 ${formData.notes ? `*Notes:* ${formData.notes}` : ""}
 
 Please confirm this order and provide payment instructions.`;
 
-      // Get WhatsApp number from settings
       const { data: settings } = await supabase
         .from("settings")
         .select("value")
@@ -115,10 +162,8 @@ Please confirm this order and provide payment instructions.`;
       const encodedMessage = encodeURIComponent(message);
       const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodedMessage}`;
 
-      // Open WhatsApp
       window.open(whatsappUrl, "_blank");
 
-      // Clear cart and redirect
       clearCart();
       toast.success("Order created! Redirecting to WhatsApp...");
       setTimeout(() => navigate("/"), 2000);
@@ -156,7 +201,7 @@ Please confirm this order and provide payment instructions.`;
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground flex items-center gap-1">
                     <Truck className="h-4 w-4" />
-                    Shipping ({formData.state === "kerala" ? "Kerala" : "Outside Kerala"})
+                    Shipping ({formData.state === "Kerala" ? "Kerala" : "Outside Kerala"})
                   </span>
                   <span>₹{shippingCharge}</span>
                 </div>
@@ -166,12 +211,40 @@ Please confirm this order and provide payment instructions.`;
                 </div>
               </div>
             </div>
+            
+            {/* Shipping Info */}
+            <div className="mt-4 p-3 bg-muted/50 rounded-lg text-sm">
+              <p className="font-medium mb-1">Shipping Charges:</p>
+              <p className="text-muted-foreground">• Kerala: ₹{KERALA_SHIPPING}</p>
+              <p className="text-muted-foreground">• Other States: ₹{OTHER_STATE_SHIPPING}</p>
+            </div>
           </Card>
 
           {/* Checkout Form */}
           <Card className="p-6">
             <h2 className="mb-4 text-xl font-semibold">Delivery Details</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Country */}
+              <div className="space-y-2">
+                <Label htmlFor="country">Country/Region *</Label>
+                <Select
+                  value={formData.country}
+                  onValueChange={(value) => setFormData({ ...formData, country: value, state: "" })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select country" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60 bg-background">
+                    {COUNTRIES.map((country) => (
+                      <SelectItem key={country} value={country}>
+                        {country}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Name */}
               <div className="space-y-2">
                 <Label htmlFor="name">Full Name *</Label>
                 <Input
@@ -183,6 +256,90 @@ Please confirm this order and provide payment instructions.`;
                 />
               </div>
 
+              {/* Address */}
+              <div className="space-y-2">
+                <Label htmlFor="address">Address *</Label>
+                <Input
+                  id="address"
+                  required
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  placeholder="House No., Street, Area"
+                />
+              </div>
+
+              {/* Apartment/Suite */}
+              <div className="space-y-2">
+                <Label htmlFor="apartment">Apartment, Suite, etc. (Optional)</Label>
+                <Input
+                  id="apartment"
+                  value={formData.apartment}
+                  onChange={(e) => setFormData({ ...formData, apartment: e.target.value })}
+                  placeholder="Apartment, floor, building name"
+                />
+              </div>
+
+              {/* City */}
+              <div className="space-y-2">
+                <Label htmlFor="city">City *</Label>
+                <Input
+                  id="city"
+                  required
+                  value={formData.city}
+                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                  placeholder="Kochi"
+                />
+              </div>
+
+              {/* State - Only show Indian states if India is selected */}
+              <div className="space-y-2">
+                <Label htmlFor="state">State *</Label>
+                {formData.country === "India" ? (
+                  <Select
+                    value={formData.state}
+                    onValueChange={(value) => setFormData({ ...formData, state: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select state" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60 bg-background">
+                      {INDIAN_STATES.map((state) => (
+                        <SelectItem key={state} value={state}>
+                          {state}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input
+                    id="state"
+                    required
+                    value={formData.state}
+                    onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                    placeholder="State/Province"
+                  />
+                )}
+                {formData.country === "India" && formData.state && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Shipping: ₹{formData.state === "Kerala" ? KERALA_SHIPPING : OTHER_STATE_SHIPPING}
+                    {formData.state === "Kerala" && " (Local delivery)"}
+                  </p>
+                )}
+              </div>
+
+              {/* Pincode */}
+              <div className="space-y-2">
+                <Label htmlFor="pincode">Pincode/ZIP Code *</Label>
+                <Input
+                  id="pincode"
+                  required
+                  value={formData.pincode}
+                  onChange={(e) => setFormData({ ...formData, pincode: e.target.value })}
+                  placeholder="682001"
+                />
+              </div>
+
+              {/* Phone */}
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone Number *</Label>
                 <Input
@@ -191,12 +348,13 @@ Please confirm this order and provide payment instructions.`;
                   required
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder="98XXXXXXXX"
+                  placeholder="+91 98XXXXXXXX"
                 />
               </div>
 
+              {/* Email */}
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">Email (Optional)</Label>
                 <Input
                   id="email"
                   type="email"
@@ -206,57 +364,7 @@ Please confirm this order and provide payment instructions.`;
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="address">Delivery Address *</Label>
-                <Textarea
-                  id="address"
-                  required
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  placeholder="House No., Street, Area, City"
-                  rows={3}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="pincode">Pincode *</Label>
-                <Input
-                  id="pincode"
-                  required
-                  value={formData.pincode}
-                  onChange={(e) => setFormData({ ...formData, pincode: e.target.value })}
-                  placeholder="560001"
-                />
-              </div>
-
-              {/* State Selection for Shipping */}
-              <div className="space-y-3 p-4 bg-muted/50 rounded-lg">
-                <Label className="flex items-center gap-2">
-                  <Truck className="h-4 w-4" />
-                  Shipping Location *
-                </Label>
-                <RadioGroup
-                  value={formData.state}
-                  onValueChange={(value) => setFormData({ ...formData, state: value })}
-                  className="flex flex-col gap-3"
-                >
-                  <div className="flex items-center space-x-3 p-3 rounded-lg border border-border bg-background cursor-pointer hover:border-primary transition-colors">
-                    <RadioGroupItem value="kerala" id="kerala" />
-                    <Label htmlFor="kerala" className="flex-1 cursor-pointer">
-                      <div className="font-medium">Kerala</div>
-                      <div className="text-sm text-muted-foreground">Shipping: ₹{KERALA_SHIPPING}</div>
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-3 p-3 rounded-lg border border-border bg-background cursor-pointer hover:border-primary transition-colors">
-                    <RadioGroupItem value="other" id="other" />
-                    <Label htmlFor="other" className="flex-1 cursor-pointer">
-                      <div className="font-medium">Outside Kerala</div>
-                      <div className="text-sm text-muted-foreground">Shipping: ₹{OTHER_STATE_SHIPPING}</div>
-                    </Label>
-                  </div>
-                </RadioGroup>
-              </div>
-
+              {/* Notes */}
               <div className="space-y-2">
                 <Label htmlFor="notes">Special Instructions (Optional)</Label>
                 <Textarea
