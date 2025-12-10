@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "@/contexts/CartContext";
 import { Button } from "@/components/ui/button";
@@ -6,9 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
-import { Loader2, MessageCircle } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Loader2, MessageCircle, Truck } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+
+const KERALA_SHIPPING = 70;
+const OTHER_STATE_SHIPPING = 100;
 
 const Checkout = () => {
   const navigate = useNavigate();
@@ -20,8 +24,12 @@ const Checkout = () => {
     email: "",
     address: "",
     pincode: "",
+    state: "kerala", // "kerala" or "other"
     notes: "",
   });
+
+  const shippingCharge = formData.state === "kerala" ? KERALA_SHIPPING : OTHER_STATE_SHIPPING;
+  const grandTotal = useMemo(() => total + shippingCharge, [total, shippingCharge]);
 
   if (items.length === 0) {
     return (
@@ -43,6 +51,8 @@ const Checkout = () => {
     try {
       // Create order in database
       const orderNumber = `ORD${Date.now()}`;
+      const stateLabel = formData.state === "kerala" ? "Kerala" : "Outside Kerala";
+      
       const { data: order, error } = await supabase
         .from("orders")
         .insert({
@@ -50,14 +60,14 @@ const Checkout = () => {
           customer_name: formData.name,
           customer_phone: formData.phone,
           customer_email: formData.email,
-          shipping_address: `${formData.address}, ${formData.pincode}`,
+          shipping_address: `${formData.address}, ${formData.pincode} (${stateLabel})`,
           items: items.map((item) => ({
             productId: item.id,
             name: item.name,
             quantity: item.quantity,
             price: item.price,
           })),
-          total,
+          total: grandTotal,
           status: "pending",
         })
         .select()
@@ -76,7 +86,9 @@ Order ID: #${orderNumber}
 *Items:*
 ${itemsList}
 
-*Total:* ₹${total.toFixed(2)}
+*Subtotal:* ₹${total.toFixed(2)}
+*Shipping (${stateLabel}):* ₹${shippingCharge}
+*Total:* ₹${grandTotal.toFixed(2)}
 
 *Customer Details:*
 Name: ${formData.name}
@@ -86,6 +98,7 @@ Email: ${formData.email}
 *Delivery Address:*
 ${formData.address}
 ${formData.pincode}
+State: ${stateLabel}
 
 ${formData.notes ? `*Notes:* ${formData.notes}` : ""}
 
@@ -135,10 +148,21 @@ Please confirm this order and provide payment instructions.`;
                   <span className="font-medium">₹{(item.price * item.quantity).toFixed(2)}</span>
                 </div>
               ))}
-              <div className="border-t border-border pt-3">
-                <div className="flex justify-between text-lg font-bold">
+              <div className="border-t border-border pt-3 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Subtotal</span>
+                  <span>₹{total.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground flex items-center gap-1">
+                    <Truck className="h-4 w-4" />
+                    Shipping ({formData.state === "kerala" ? "Kerala" : "Outside Kerala"})
+                  </span>
+                  <span>₹{shippingCharge}</span>
+                </div>
+                <div className="flex justify-between text-lg font-bold border-t border-border pt-2">
                   <span>Total:</span>
-                  <span className="text-primary">₹{total.toFixed(2)}</span>
+                  <span className="text-primary">₹{grandTotal.toFixed(2)}</span>
                 </div>
               </div>
             </div>
@@ -205,6 +229,34 @@ Please confirm this order and provide payment instructions.`;
                 />
               </div>
 
+              {/* State Selection for Shipping */}
+              <div className="space-y-3 p-4 bg-muted/50 rounded-lg">
+                <Label className="flex items-center gap-2">
+                  <Truck className="h-4 w-4" />
+                  Shipping Location *
+                </Label>
+                <RadioGroup
+                  value={formData.state}
+                  onValueChange={(value) => setFormData({ ...formData, state: value })}
+                  className="flex flex-col gap-3"
+                >
+                  <div className="flex items-center space-x-3 p-3 rounded-lg border border-border bg-background cursor-pointer hover:border-primary transition-colors">
+                    <RadioGroupItem value="kerala" id="kerala" />
+                    <Label htmlFor="kerala" className="flex-1 cursor-pointer">
+                      <div className="font-medium">Kerala</div>
+                      <div className="text-sm text-muted-foreground">Shipping: ₹{KERALA_SHIPPING}</div>
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-3 p-3 rounded-lg border border-border bg-background cursor-pointer hover:border-primary transition-colors">
+                    <RadioGroupItem value="other" id="other" />
+                    <Label htmlFor="other" className="flex-1 cursor-pointer">
+                      <div className="font-medium">Outside Kerala</div>
+                      <div className="text-sm text-muted-foreground">Shipping: ₹{OTHER_STATE_SHIPPING}</div>
+                    </Label>
+                  </div>
+                </RadioGroup>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="notes">Special Instructions (Optional)</Label>
                 <Textarea
@@ -230,7 +282,7 @@ Please confirm this order and provide payment instructions.`;
                 ) : (
                   <>
                     <MessageCircle className="mr-2 h-5 w-5" />
-                    Buy via WhatsApp
+                    Buy via WhatsApp (₹{grandTotal.toFixed(2)})
                   </>
                 )}
               </Button>

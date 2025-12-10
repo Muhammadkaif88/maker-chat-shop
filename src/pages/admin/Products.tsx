@@ -138,8 +138,8 @@ export default function AdminProducts() {
         </Button>
       </div>
 
-      <div className="border border-border rounded-lg overflow-hidden bg-card">
-        <Table>
+      <div className="border border-border rounded-lg overflow-hidden bg-card overflow-x-auto">
+        <Table className="min-w-[700px]">
           <TableHeader>
             <TableRow>
               <TableHead>Product</TableHead>

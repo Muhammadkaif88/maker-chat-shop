@@ -95,6 +95,10 @@ export function OrderInvoiceModal({ order, open, onClose }: OrderInvoiceModalPro
 
   const items = Array.isArray(order.items) ? order.items : [];
   const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  
+  // Calculate shipping from total - subtotal (stored in order)
+  const shippingCharge = Number(order.total) - subtotal;
+  
   const invoiceDate = order.created_at ? new Date(order.created_at).toLocaleDateString('en-IN', {
     year: 'numeric',
     month: 'short',
@@ -175,6 +179,12 @@ export function OrderInvoiceModal({ order, open, onClose }: OrderInvoiceModalPro
                 <span className="text-muted-foreground">Sub-Total</span>
                 <span>₹{subtotal.toLocaleString()}</span>
               </div>
+              {shippingCharge > 0 && (
+                <div className="flex justify-between py-2 text-sm">
+                  <span className="text-muted-foreground">Shipping</span>
+                  <span>₹{shippingCharge.toLocaleString()}</span>
+                </div>
+              )}
               <div className="flex justify-between py-3 text-lg font-bold border-t-2 border-foreground">
                 <span>Total Due</span>
                 <span>₹{Number(order.total).toLocaleString()}</span>
