@@ -23,6 +23,7 @@ import AdminCategories from "./pages/admin/Categories";
 import AdminCourses from "./pages/admin/Courses";
 import AdminOrders from "./pages/admin/Orders";
 import AdminSettings from "./pages/admin/Settings";
+import OrderTracking from "./pages/OrderTracking";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,6 +46,7 @@ const AppLayout = () => {
           <Route path="/courses/:slug" element={<CourseDetail />} />
           <Route path="/kits" element={<Kits />} />
           <Route path="/checkout" element={<Checkout />} />
+          <Route path="/track-order" element={<OrderTracking />} />
           <Route path="/auth" element={<Auth />} />
           
           {/* Admin Routes */}
