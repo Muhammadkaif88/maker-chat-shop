@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
@@ -25,7 +25,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, GraduationCap } from "lucide-react";
+import { Plus, Pencil, Trash2, GraduationCap, Search } from "lucide-react";
 
 interface Course {
   id: string;
@@ -60,6 +60,7 @@ const AdminCourses = () => {
   const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     slug: "",
@@ -199,9 +200,20 @@ const AdminCourses = () => {
     }
   };
 
+  const filteredCourses = useMemo(() => {
+    if (!courses || !searchQuery.trim()) return courses;
+    const query = searchQuery.toLowerCase();
+    return courses.filter(
+      (c) =>
+        c.name.toLowerCase().includes(query) ||
+        c.category.toLowerCase().includes(query) ||
+        c.slug.toLowerCase().includes(query)
+    );
+  }, [courses, searchQuery]);
+
   return (
     <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
         <div className="flex items-center gap-3">
           <GraduationCap className="h-6 w-6 text-primary" />
           <h1 className="text-2xl font-bold text-foreground">Courses</h1>
@@ -373,6 +385,16 @@ const AdminCourses = () => {
         </Dialog>
       </div>
 
+      <div className="relative max-w-md mb-4">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search courses by name or category..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-10"
+        />
+      </div>
+
       <Card className="overflow-x-auto">
         <Table className="min-w-[700px]">
           <TableHeader>
@@ -392,14 +414,14 @@ const AdminCourses = () => {
                   Loading...
                 </TableCell>
               </TableRow>
-            ) : courses?.length === 0 ? (
+            ) : filteredCourses?.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                  No courses found. Create your first course.
+                  {searchQuery ? "No courses match your search." : "No courses found. Create your first course."}
                 </TableCell>
               </TableRow>
             ) : (
-              courses?.map((course) => (
+              filteredCourses?.map((course) => (
                 <TableRow key={course.id}>
                   <TableCell className="font-medium">{course.name}</TableCell>
                   <TableCell>

@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Plus, Edit, Trash2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Plus, Edit, Trash2, Search } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -35,6 +36,7 @@ export default function AdminProducts() {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const { data: products, isLoading } = useQuery({
     queryKey: ["admin-products"],
@@ -117,6 +119,18 @@ export default function AdminProducts() {
     deleteMutation.mutate(id);
   };
 
+  const filteredProducts = useMemo(() => {
+    if (!products || !searchQuery.trim()) return products;
+    const query = searchQuery.toLowerCase();
+    return products.filter(
+      (p) =>
+        p.name.toLowerCase().includes(query) ||
+        p.sku.toLowerCase().includes(query) ||
+        p.slug.toLowerCase().includes(query) ||
+        (p.tags && p.tags.some(tag => tag.toLowerCase().includes(query)))
+    );
+  }, [products, searchQuery]);
+
   if (isLoading) {
     return (
       <div className="p-6">
@@ -127,7 +141,7 @@ export default function AdminProducts() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h2 className="text-3xl font-bold text-foreground mb-2">Products</h2>
           <p className="text-muted-foreground">Manage your product catalog</p>
@@ -136,6 +150,16 @@ export default function AdminProducts() {
           <Plus className="mr-2 h-4 w-4" />
           Add Product
         </Button>
+      </div>
+
+      <div className="relative max-w-md">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search products by name, SKU, or tags..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-10"
+        />
       </div>
 
       <div className="border border-border rounded-lg overflow-hidden bg-card overflow-x-auto">
@@ -151,14 +175,14 @@ export default function AdminProducts() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {products?.length === 0 ? (
+            {filteredProducts?.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                  No products found. Create your first product.
+                  {searchQuery ? "No products match your search." : "No products found. Create your first product."}
                 </TableCell>
               </TableRow>
             ) : (
-              products?.map((product) => (
+              filteredProducts?.map((product) => (
                 <TableRow key={product.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">

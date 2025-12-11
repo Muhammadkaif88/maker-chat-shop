@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, FolderOpen } from "lucide-react";
+import { Plus, Pencil, Trash2, FolderOpen, Search } from "lucide-react";
 
 interface Category {
   id: string;
@@ -37,6 +37,7 @@ const AdminCategories = () => {
   const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     slug: "",
@@ -134,9 +135,20 @@ const AdminCategories = () => {
     }
   };
 
+  const filteredCategories = useMemo(() => {
+    if (!categories || !searchQuery.trim()) return categories;
+    const query = searchQuery.toLowerCase();
+    return categories.filter(
+      (c) =>
+        c.name.toLowerCase().includes(query) ||
+        c.slug.toLowerCase().includes(query) ||
+        (c.description && c.description.toLowerCase().includes(query))
+    );
+  }, [categories, searchQuery]);
+
   return (
     <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
         <div className="flex items-center gap-3">
           <FolderOpen className="h-6 w-6 text-primary" />
           <h1 className="text-2xl font-bold text-foreground">Categories</h1>
@@ -226,6 +238,16 @@ const AdminCategories = () => {
         </Dialog>
       </div>
 
+      <div className="relative max-w-md mb-4">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search categories by name or slug..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-10"
+        />
+      </div>
+
       <Card className="overflow-x-auto">
         <Table className="min-w-[600px]">
           <TableHeader>
@@ -244,14 +266,14 @@ const AdminCategories = () => {
                   Loading...
                 </TableCell>
               </TableRow>
-            ) : categories?.length === 0 ? (
+            ) : filteredCategories?.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                  No categories found. Create your first category.
+                  {searchQuery ? "No categories match your search." : "No categories found. Create your first category."}
                 </TableCell>
               </TableRow>
             ) : (
-              categories?.map((category) => (
+              filteredCategories?.map((category) => (
                 <TableRow key={category.id}>
                   <TableCell>{category.order_index}</TableCell>
                   <TableCell className="font-medium">{category.name}</TableCell>
