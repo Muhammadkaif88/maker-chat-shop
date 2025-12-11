@@ -23,6 +23,7 @@ import AdminCategories from "./pages/admin/Categories";
 import AdminCourses from "./pages/admin/Courses";
 import AdminOrders from "./pages/admin/Orders";
 import AdminSettings from "./pages/admin/Settings";
+import StaffManagement from "./pages/admin/StaffManagement";
 import OrderTracking from "./pages/OrderTracking";
 import NotFound from "./pages/NotFound";
 
@@ -57,6 +58,7 @@ const AppLayout = () => {
             <Route path="courses" element={<AdminCourses />} />
             <Route path="orders" element={<AdminOrders />} />
             <Route path="settings" element={<AdminSettings />} />
+            <Route path="staff" element={<StaffManagement />} />
           </Route>
 
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
